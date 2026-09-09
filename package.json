@@ -6,9 +6,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "test": "node --test dist/tests/**/*.test.js",
-    "test:src": "tsx --test tests/**/*.test.ts"
+    "build": "node scripts/build.mjs",
+    "format": "prettier ./src --write",
+    "lint": "eslint --fix '{src,scripts}/**/*.{css,mjs,js,md}'",
+    "test": "node --test dist/tests/**/*.test.js"
   },
   "keywords": [
     "chores",
@@ -19,7 +20,17 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@eslint/css": "2.0.0",
+    "@eslint/js": "10.0.1",
+    "@eslint/markdown": "8.0.3",
     "@types/node": "^26.4.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.10.0",
+    "globals": "17.12.0",
+    "prettier": "3.9.6",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "alpinejs": "3.17.2"
   }
 }
