@@ -1,0 +1,25 @@
+{
+  "name": "chores-planner",
+  "version": "1.0.0",
+  "description": "Offline-first chore scheduling algorithm for PWA",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/tests/**/*.test.js",
+    "test:src": "tsx --test tests/**/*.test.ts"
+  },
+  "keywords": [
+    "chores",
+    "scheduler",
+    "pwa",
+    "offline-first",
+    "algorithm"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  }
+}
