@@ -9,7 +9,7 @@
     "build": "node scripts/build.mjs",
     "format": "prettier ./src --write",
     "lint": "eslint --fix '{src,scripts}/**/*.{css,mjs,js,md}'",
-    "test": "node --test dist/tests/**/*.test.js"
+    "test": "tsc && node --test dist/tests/**/*.test.js"
   },
   "keywords": [
     "chores",

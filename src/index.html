@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Household Chores</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("sw.js")
+          .then(function (reg) {
+            console.log("SW registered:", reg.scope);
+          })
+          .catch(function (err) {
+            console.error("SW registration failed:", err);
+          });
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="app-container" x-data="householdApp" x-cloak>
+      <header class="app-header">
+        <div class="app-title-group">
+          <template x-if="currentPage !== 'today'">
+            <button class="btn-link" @click="goBack()">← Back</button>
+          </template>
+          <template x-if="currentPage === 'today'">
+            <span class="app-title">🧹 Household</span>
+          </template>
+        </div>
+
+        <div class="app-header-actions">
+          <!-- Today View Actions -->
+          <template x-if="currentPage === 'today'">
+            <div style="display: flex; gap: 6px">
+              <button
+                class="btn-secondary btn-sm"
+                @click="navigateTo('settings')"
+              >
+                ⚙️ Settings
+              </button>
+              <button class="btn-sm" @click="navigateTo('add')">
+                + Add Chore
+              </button>
+            </div>
+          </template>
+
+          <!-- Settings View Actions -->
+          <template x-if="currentPage === 'settings'">
+            <div style="display: flex; gap: 6px">
+              <button class="btn-sm" @click="navigateTo('add')">
+                + Add Chore
+              </button>
+            </div>
+          </template>
+        </div>
+      </header>
+
+      <main>
+        <!-- Today Screen -->
+        <template x-if="currentPage === 'today'">
+          <div>
+            <!-- INCLUDE: templates/today.html -->
+          </div>
+        </template>
+
+        <!-- Form Screen (Add / Edit) -->
+        <template x-if="currentPage === 'add' || currentPage === 'edit'">
+          <div>
+            <!-- INCLUDE: templates/form.html -->
+          </div>
+        </template>
+
+        <!-- Settings Screen -->
+        <template x-if="currentPage === 'settings'">
+          <div>
+            <!-- INCLUDE: templates/settings.html -->
+          </div>
+        </template>
+      </main>
+
+      <!-- Toast Container -->
+      <!-- INCLUDE: templates/toast.html -->
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

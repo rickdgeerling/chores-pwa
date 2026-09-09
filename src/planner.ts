@@ -6,33 +6,34 @@ import {
   PlanOptions,
   PlannedChore,
   Weekday,
-} from './types.js';
+} from "./types.js";
 
 export const AVERAGE_DAYS_IN_MONTH = 30.4375;
 
 export const DEFAULT_ACTIVE_WEEKDAYS: Weekday[] = [
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
 ];
 
 const WEEKDAYS: Weekday[] = [
-  'sunday',
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
 ];
 
 /**
  * Normalizes a Date to midnight (00:00:00.000) local time.
  */
 export function normalizeDate(date: Date | string): Date {
-  const d = typeof date === 'string' ? new Date(date) : new Date(date.getTime());
+  const d =
+    typeof date === "string" ? new Date(date) : new Date(date.getTime());
   d.setHours(0, 0, 0, 0);
   return d;
 }
@@ -50,11 +51,11 @@ export function getWeekday(date: Date): Weekday {
 export function getIntervalInDays(interval: ChoreInterval): number {
   const amount = Math.max(0.1, interval.amount || 1);
   switch (interval.type) {
-    case 'day':
+    case "day":
       return amount;
-    case 'week':
+    case "week":
       return amount * 7;
-    case 'month':
+    case "month":
       return amount * AVERAGE_DAYS_IN_MONTH;
     default:
       return amount;
@@ -67,7 +68,7 @@ export function getIntervalInDays(interval: ChoreInterval): number {
 export function hashString(str: string): number {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = (hash << 5) + hash + str.charCodeAt(i);
     hash = hash & hash;
   }
   return Math.abs(hash);
@@ -88,11 +89,11 @@ export function daysBetween(from: Date, to: Date): number {
 export function getEffectiveLastPerformed(
   chore: Chore,
   intervalInDays: number,
-  today: Date
+  today: Date,
 ): Date {
   if (chore.lastPerformed) {
     const parsed =
-      typeof chore.lastPerformed === 'string'
+      typeof chore.lastPerformed === "string"
         ? new Date(chore.lastPerformed)
         : chore.lastPerformed;
     if (!isNaN(parsed.getTime())) {
@@ -104,7 +105,7 @@ export function getEffectiveLastPerformed(
   // We use integer days so daysSinceLastPerformed < intervalInDays on initial cold start
   const seed = chore.id || chore.name;
   const hash = hashString(seed);
-  const ratio = 0.05 + ((hash % 800) / 1000); // 0.05 to 0.849
+  const ratio = 0.05 + (hash % 800) / 1000; // 0.05 to 0.849
   const elapsedDays = Math.max(0, Math.floor(ratio * intervalInDays));
   const syntheticDate = new Date(today.getTime());
   syntheticDate.setDate(syntheticDate.getDate() - elapsedDays);
@@ -116,11 +117,11 @@ export function getEffectiveLastPerformed(
  */
 export function getRemainingActiveDaysThisWeek(
   today: Date,
-  activeWeekdays: Set<Weekday>
+  activeWeekdays: Set<Weekday>,
 ): number {
   const currentIsoDay = (today.getDay() + 6) % 7; // Mon=0 ... Sun=6
   let count = 0;
-  for (let offset = 0; offset <= (6 - currentIsoDay); offset++) {
+  for (let offset = 0; offset <= 6 - currentIsoDay; offset++) {
     const checkDate = new Date(today);
     checkDate.setDate(today.getDate() + offset);
     if (activeWeekdays.has(getWeekday(checkDate))) {
@@ -142,18 +143,28 @@ export function planDay(chores: Chore[], options?: PlanOptions): DailyPlan {
 
   const isoDay = (today.getDay() + 6) % 7; // Mon=0 ... Sun=6
   const daysToEndOfWeek = 6 - isoDay;
-  const remainingActiveDays = getRemainingActiveDaysThisWeek(today, activeWeekdays);
+  const remainingActiveDays = getRemainingActiveDaysThisWeek(
+    today,
+    activeWeekdays,
+  );
 
   // Evaluate each chore
   const evaluated: PlannedChore[] = chores.map((chore) => {
     const intervalInDays = getIntervalInDays(chore.interval);
-    const effectiveLastPerformed = getEffectiveLastPerformed(chore, intervalInDays, today);
+    const effectiveLastPerformed = getEffectiveLastPerformed(
+      chore,
+      intervalInDays,
+      today,
+    );
     const daysSinceLastPerformed = daysBetween(effectiveLastPerformed, today);
     const urgencyRatio = daysSinceLastPerformed / intervalInDays;
 
     const preferredWeekdays = chore.interval.weekdays;
-    const hasPreferred = Array.isArray(preferredWeekdays) && preferredWeekdays.length > 0;
-    const preferredWeekdayMatch = hasPreferred ? preferredWeekdays.includes(todayWeekday) : false;
+    const hasPreferred =
+      Array.isArray(preferredWeekdays) && preferredWeekdays.length > 0;
+    const preferredWeekdayMatch = hasPreferred
+      ? preferredWeekdays.includes(todayWeekday)
+      : false;
 
     let deferredDueToWeekday = false;
     let score = urgencyRatio;
@@ -238,7 +249,9 @@ export function planDay(chores: Chore[], options?: PlanOptions): DailyPlan {
     const backlogIds = new Set(backlogTasks.map((t) => t.chore.name));
 
     upcomingTasks = evaluated
-      .filter((c) => !todayIds.has(c.chore.name) && !backlogIds.has(c.chore.name))
+      .filter(
+        (c) => !todayIds.has(c.chore.name) && !backlogIds.has(c.chore.name),
+      )
       .sort((a, b) => b.urgencyRatio - a.urgencyRatio);
   }
 

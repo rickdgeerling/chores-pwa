@@ -1,0 +1,123 @@
+<div>
+  <div style="margin-bottom: 20px">
+    <h1
+      style="font-size: 1.3rem; margin: 0 0 4px"
+      x-text="editingId ? 'Edit Chore' : 'Add Chore'"
+    ></h1>
+    <p style="color: var(--color-text-muted); font-size: 0.875rem; margin: 0">
+      Set how often this chore needs to be done and any preferred days.
+    </p>
+  </div>
+
+  <form @submit.prevent="saveChore()">
+    <!-- Chore Name -->
+    <div class="form-group">
+      <label for="chore-name">Chore Name *</label>
+      <input
+        type="text"
+        id="chore-name"
+        x-model="form.name"
+        required
+        placeholder="e.g. Beddengoed wassen"
+      />
+    </div>
+
+    <!-- Interval Amount & Unit -->
+    <div class="form-group">
+      <label>Interval *</label>
+      <div class="form-row">
+        <div>
+          <input
+            type="number"
+            id="chore-amount"
+            min="1"
+            max="365"
+            x-model.number="form.amount"
+            required
+            placeholder="e.g. 2"
+          />
+        </div>
+        <div>
+          <select id="chore-type" x-model="form.type">
+            <option value="day">Day(s)</option>
+            <option value="week">Week(s)</option>
+            <option value="month">Month(s)</option>
+          </select>
+        </div>
+      </div>
+      <p
+        style="
+          font-size: 0.775rem;
+          color: var(--color-text-muted);
+          margin: 4px 0 0;
+        "
+      >
+        💡 Tip: For quarterly chores use 3 months; for yearly use 12 months.
+      </p>
+    </div>
+
+    <!-- Preferred Weekdays (Optional) -->
+    <div class="form-group">
+      <label>Preferred Weekday(s) (Optional)</label>
+      <p
+        style="
+          font-size: 0.775rem;
+          color: var(--color-text-muted);
+          margin: 0 0 6px;
+        "
+      >
+        Optionally tie this chore to specific days (e.g. Planten on Saturday).
+      </p>
+      <div class="weekday-selector">
+        <template x-for="day in allWeekdays" :key="day">
+          <button
+            type="button"
+            class="weekday-chip"
+            :class="{ 'active': isFormWeekdaySelected(day) }"
+            @click="toggleFormWeekday(day)"
+            x-text="day.charAt(0).toUpperCase() + day.slice(1, 3)"
+          ></button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Last Performed Date (Optional) -->
+    <div class="form-group">
+      <label for="chore-last-performed">Last Performed Date (Optional)</label>
+      <div style="display: flex; gap: 8px">
+        <input
+          type="date"
+          id="chore-last-performed"
+          x-model="form.lastPerformedDate"
+        />
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          @click="form.lastPerformedDate = ''"
+          x-show="form.lastPerformedDate"
+        >
+          Clear
+        </button>
+      </div>
+      <p
+        style="
+          font-size: 0.775rem;
+          color: var(--color-text-muted);
+          margin: 4px 0 0;
+        "
+      >
+        Leave empty to automatically stagger this chore across its cycle.
+      </p>
+    </div>
+
+    <!-- Form Actions -->
+    <div style="display: flex; gap: 10px; margin-top: 24px">
+      <button type="submit" style="flex: 1">
+        <span x-text="editingId ? 'Save Changes' : 'Add Chore'"></span>
+      </button>
+      <button type="button" class="btn-secondary" @click="goBack()">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

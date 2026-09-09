@@ -1,0 +1,170 @@
+<div>
+  <div style="margin-bottom: 20px">
+    <h1 style="font-size: 1.3rem; margin: 0 0 4px">Settings</h1>
+    <p style="color: var(--color-text-muted); font-size: 0.875rem; margin: 0">
+      Configure chore schedules, active days, and backup data.
+    </p>
+  </div>
+
+  <!-- Section: Active Weekdays -->
+  <div class="section">
+    <h2 class="section-title" style="margin-bottom: 8px">
+      Active Schedule Days
+    </h2>
+    <p
+      style="
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        margin-bottom: 12px;
+      "
+    >
+      Chores are evenly balanced across your active days. Unselected days serve
+      as rest and catch-up buffer.
+    </p>
+
+    <div class="weekday-selector">
+      <template x-for="day in allWeekdays" :key="day">
+        <button
+          type="button"
+          class="weekday-chip"
+          :class="{ 'active': isActiveWeekday(day) }"
+          @click="toggleActiveWeekday(day)"
+          x-text="day.charAt(0).toUpperCase() + day.slice(1, 3)"
+        ></button>
+      </template>
+    </div>
+  </div>
+
+  <!-- Section: Manage Chores -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span>Manage Chores</span>
+        <span class="badge badge-count" x-text="chores.length"></span>
+      </h2>
+      <button class="btn-sm" @click="navigateTo('add')">+ Add Chore</button>
+    </div>
+
+    <template x-if="chores.length === 0">
+      <div class="empty-state">
+        <p>No chores in database.</p>
+        <button class="btn-secondary btn-sm" @click="loadSampleChores()">
+          Load Example Chores
+        </button>
+      </div>
+    </template>
+
+    <template x-if="chores.length > 0">
+      <div>
+        <template x-for="chore in chores" :key="chore.id || chore.name">
+          <div class="chore-card">
+            <div class="chore-info">
+              <div class="chore-name" x-text="chore.name"></div>
+              <div class="chore-meta">
+                <span
+                  class="badge badge-interval"
+                  x-text="formatInterval(chore.interval)"
+                ></span>
+                <span class="badge" x-text="formatLastDone(chore)"></span>
+                <template
+                  x-if="chore.interval.weekdays && chore.interval.weekdays.length > 0"
+                >
+                  <span
+                    class="badge badge-weekday"
+                    x-text="chore.interval.weekdays.join(', ')"
+                  ></span>
+                </template>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px">
+              <button
+                type="button"
+                class="btn-secondary btn-sm"
+                @click="navigateTo('edit', chore.id || chore.name)"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                class="btn-danger btn-sm"
+                @click="deleteChore(chore.id || chore.name)"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+  <!-- Section: Backup & Restore -->
+  <div
+    class="section"
+    style="border-top: 1px solid var(--color-border); padding-top: 20px"
+  >
+    <h2 class="section-title" style="margin-bottom: 8px">Backup & Restore</h2>
+
+    <div class="form-group">
+      <label for="settings-export">Export JSON</label>
+      <p
+        style="
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+          margin: 0 0 6px;
+        "
+      >
+        Copy this JSON string to keep a backup of your chores and settings.
+      </p>
+      <textarea
+        id="settings-export"
+        readonly
+        rows="3"
+        x-effect="$el.value = exportJSON()"
+      ></textarea>
+      <button
+        type="button"
+        class="btn-secondary btn-sm"
+        style="margin-top: 6px"
+        @click="copyExport()"
+      >
+        📋 Copy JSON
+      </button>
+    </div>
+
+    <div class="form-group" style="margin-top: 16px">
+      <label for="settings-import">Restore JSON</label>
+      <p
+        style="
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+          margin: 0 0 6px;
+        "
+      >
+        Paste a previously exported JSON backup to restore your data.
+      </p>
+      <textarea
+        id="settings-import"
+        x-model="restoreText"
+        rows="3"
+        placeholder='Paste backup JSON here {"version": 1, ...}'
+      ></textarea>
+      <div style="display: flex; gap: 8px; margin-top: 6px">
+        <button
+          type="button"
+          class="btn-sm"
+          @click="restoreFromJSON(restoreText)"
+        >
+          Restore
+        </button>
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          @click="loadSampleChores()"
+        >
+          Reset to Example Chores
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

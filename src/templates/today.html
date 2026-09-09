@@ -1,0 +1,212 @@
+<div>
+  <!-- Date and Day Status -->
+  <div class="date-header">
+    <h1 class="date-today" x-text="formattedTodayDate"></h1>
+    <p class="date-status">
+      <template x-if="plan.metrics.isRestDay">
+        <span>🛋️ Rest & Catch-up Day</span>
+      </template>
+      <template x-if="!plan.metrics.isRestDay">
+        <span
+          x-text="`Target for today: ${plan.metrics.quotaForToday} task(s) • ${plan.metrics.remainingActiveDaysThisWeek} active day(s) left this week`"
+        ></span>
+      </template>
+    </p>
+  </div>
+
+  <!-- Empty State (No Chores at all) -->
+  <template x-if="chores.length === 0">
+    <div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <p>No chores configured yet.</p>
+      <div style="display: flex; gap: 8px; justify-content: center">
+        <button @click="navigateTo('add')">+ Add First Chore</button>
+        <button class="btn-secondary" @click="loadSampleChores()">
+          Load Example Chores
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Chores Exist -->
+  <template x-if="chores.length > 0">
+    <div>
+      <!-- Rest Day Info Banner -->
+      <template x-if="plan.metrics.isRestDay && plan.backlogTasks.length === 0">
+        <div class="banner banner-info">
+          <strong>Enjoy your rest day!</strong> No daily tasks scheduled for
+          today.
+        </div>
+      </template>
+
+      <!-- Today's Focus Tasks Section -->
+      <template x-if="plan.todayTasks.length > 0">
+        <div class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span>Today's Tasks</span>
+              <span
+                class="badge badge-count"
+                x-text="plan.todayTasks.length"
+              ></span>
+            </h2>
+          </div>
+
+          <template
+            x-for="item in plan.todayTasks"
+            :key="item.chore.id || item.chore.name"
+          >
+            <div
+              class="chore-card"
+              :class="{
+                'is-critical': item.urgencyRatio >= 2.0,
+                'is-overdue': item.isOverdue && item.urgencyRatio < 2.0
+              }"
+            >
+              <div class="chore-info">
+                <div class="chore-name" x-text="item.chore.name"></div>
+                <div class="chore-meta">
+                  <span
+                    class="badge badge-interval"
+                    x-text="formatInterval(item.chore.interval)"
+                  ></span>
+                  <template x-if="item.isOverdue">
+                    <span
+                      class="badge"
+                      :class="item.urgencyRatio >= 2.0 ? 'badge-critical' : 'badge-overdue'"
+                      x-text="`${item.urgencyRatio.toFixed(1)}x overdue`"
+                    ></span>
+                  </template>
+                  <template
+                    x-if="item.chore.interval.weekdays && item.chore.interval.weekdays.length > 0"
+                  >
+                    <span
+                      class="badge badge-weekday"
+                      x-text="`Prefers: ${item.chore.interval.weekdays.join(', ')}`"
+                    ></span>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <button
+                  class="btn-done"
+                  @click="markDone(item.chore.id || item.chore.name)"
+                >
+                  ✓ Done
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- All Done for Today Message -->
+      <template
+        x-if="!plan.metrics.isRestDay && plan.todayTasks.length === 0 && plan.backlogTasks.length === 0"
+      >
+        <div class="banner banner-success" style="text-align: center">
+          <strong>All caught up for today! 🎉</strong> Great job maintaining
+          your household.
+        </div>
+      </template>
+
+      <!-- Overdue Backlog Section (Tasks that missed quota or earlier days) -->
+      <template x-if="plan.backlogTasks.length > 0">
+        <div class="section">
+          <div class="section-header">
+            <h2 class="section-title" style="color: var(--color-warning)">
+              <span>⚠️ Overdue Backlog</span>
+              <span
+                class="badge badge-overdue"
+                x-text="plan.backlogTasks.length"
+              ></span>
+            </h2>
+          </div>
+
+          <template
+            x-for="item in plan.backlogTasks"
+            :key="item.chore.id || item.chore.name"
+          >
+            <div
+              class="chore-card"
+              :class="{
+                'is-critical': item.urgencyRatio >= 2.0,
+                'is-overdue': item.urgencyRatio < 2.0
+              }"
+            >
+              <div class="chore-info">
+                <div class="chore-name" x-text="item.chore.name"></div>
+                <div class="chore-meta">
+                  <span
+                    class="badge badge-interval"
+                    x-text="formatInterval(item.chore.interval)"
+                  ></span>
+                  <span
+                    class="badge"
+                    :class="item.urgencyRatio >= 2.0 ? 'badge-critical' : 'badge-overdue'"
+                    x-text="`${item.urgencyRatio.toFixed(1)}x overdue`"
+                  ></span>
+                </div>
+              </div>
+              <div>
+                <button
+                  class="btn-done"
+                  @click="markDone(item.chore.id || item.chore.name)"
+                >
+                  ✓ Done
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Collapsible Upcoming Tasks -->
+      <template x-if="plan.upcomingTasks.length > 0">
+        <div class="section" style="margin-top: 24px">
+          <button
+            class="accordion-toggle"
+            @click="showUpcoming = !showUpcoming"
+            type="button"
+          >
+            <span
+              x-text="`Upcoming Chores (${plan.upcomingTasks.length})`"
+            ></span>
+            <span x-text="showUpcoming ? '▲' : '▼'"></span>
+          </button>
+
+          <div class="accordion-content" x-show="showUpcoming">
+            <template
+              x-for="item in plan.upcomingTasks"
+              :key="item.chore.id || item.chore.name"
+            >
+              <div class="chore-card" style="opacity: 0.85">
+                <div class="chore-info">
+                  <div class="chore-name" x-text="item.chore.name"></div>
+                  <div class="chore-meta">
+                    <span
+                      class="badge badge-interval"
+                      x-text="formatInterval(item.chore.interval)"
+                    ></span>
+                    <span
+                      class="badge"
+                      x-text="formatLastDone(item.chore)"
+                    ></span>
+                  </div>
+                </div>
+                <div>
+                  <button
+                    class="btn-secondary btn-sm"
+                    @click="markDone(item.chore.id || item.chore.name)"
+                  >
+                    ✓ Early Done
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>

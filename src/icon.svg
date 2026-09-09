@@ -1,0 +1,29 @@
+<svg width="100%" viewBox="0 0 512 512" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Household Chores App Icon</title>
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="sparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#facc15"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App icon rounded rectangle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+
+  <!-- House silhouette -->
+  <path d="M256 100 L416 236 C422 241 426 248 426 256 L426 388 C426 401 415 412 402 412 L110 412 C97 412 86 401 86 388 L86 256 C86 248 90 241 96 236 Z" fill="#ffffff" opacity="0.95"/>
+
+  <!-- Checkmark shield inside house -->
+  <circle cx="256" cy="300" r="76" fill="#2563eb" opacity="0.12"/>
+  <path d="M210 298 L244 332 L312 260" fill="none" stroke="#2563eb" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Sparkle top-right -->
+  <path d="M380 130 Q380 160 410 160 Q380 160 380 190 Q380 160 350 160 Q380 160 380 130 Z" fill="url(#sparkleGrad)"/>
+
+  <!-- Small sparkle top-left -->
+  <path d="M140 160 Q140 180 160 180 Q140 180 140 200 Q140 180 120 180 Q140 180 140 160 Z" fill="url(#sparkleGrad)" opacity="0.9"/>
+</svg>

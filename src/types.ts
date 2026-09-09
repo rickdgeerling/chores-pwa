@@ -1,13 +1,13 @@
 export type Weekday =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday';
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
 
-export type IntervalType = 'day' | 'week' | 'month';
+export type IntervalType = "day" | "week" | "month";
 
 export interface ChoreInterval {
   type: IntervalType;
