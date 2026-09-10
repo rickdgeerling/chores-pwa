@@ -2,6 +2,8 @@
 
 An offline-first, static-hosted Progressive Web App (PWA) for managing repeating household chores, powered by a pragmatic day-at-a-time scheduling algorithm.
 
+> DISCLAIMER: entirely LLM-driven codebase
+
 ---
 
 ## Features
@@ -104,8 +106,21 @@ pnpm install
   pnpm run lint
   ```
 - **Format**: Format codebase with Prettier:
+
   ```bash
   pnpm run format
+  ```
+
+- **Deploy**: Publish to GitHub pages:
+  ```bash
+  pnpm build
+  git checkout --orphan gh-pages
+  git rm -rf .
+  cp -r dist/* .
+  git add .
+  git commit -m 'Deploy'
+  git push origin gh-pages --force
+  git checkout main
   ```
 
 ---
