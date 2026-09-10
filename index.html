@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Household Chores</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("sw.js")
+          .then(function (reg) {
+            console.log("SW registered:", reg.scope);
+          })
+          .catch(function (err) {
+            console.error("SW registration failed:", err);
+          });
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="app-container" x-data="householdApp" x-cloak>
+      <header class="app-header">
+        <div class="app-title-group">
+          <template x-if="currentPage !== 'today'">
+            <button class="btn-link" @click="goBack()">← Back</button>
+          </template>
+          <template x-if="currentPage === 'today'">
+            <span class="app-title">🧹 Household</span>
+          </template>
+        </div>
+
+        <div class="app-header-actions">
+          <!-- Today View Actions -->
+          <template x-if="currentPage === 'today'">
+            <div style="display: flex; gap: 6px">
+              <button
+                class="btn-secondary btn-sm"
+                @click="navigateTo('settings')"
+              >
+                ⚙️ Settings
+              </button>
+              <button class="btn-sm" @click="navigateTo('add')">
+                + Add Chore
+              </button>
+            </div>
+          </template>
+
+          <!-- Settings View Actions -->
+          <template x-if="currentPage === 'settings'">
+            <div style="display: flex; gap: 6px">
+              <button class="btn-sm" @click="navigateTo('add')">
+                + Add Chore
+              </button>
+            </div>
+          </template>
+        </div>
+      </header>
+
+      <main>
+        <!-- Today Screen -->
+        <template x-if="currentPage === 'today'">
+          <div>
+            <div>
+  <!-- Date and Day Status -->
+  <div class="date-header">
+    <h1 class="date-today" x-text="formattedTodayDate"></h1>
+    <p class="date-status">
+      <template x-if="plan.metrics.isRestDay">
+        <span>🛋️ Rest & Catch-up Day</span>
+      </template>
+      <template x-if="!plan.metrics.isRestDay">
+        <span
+          x-text="`Target for today: ${plan.metrics.quotaForToday} task(s) • ${plan.metrics.remainingActiveDaysThisWeek} active day(s) left this week`"
+        ></span>
+      </template>
+    </p>
+  </div>
+
+  <!-- Empty State (No Chores at all) -->
+  <template x-if="chores.length === 0">
+    <div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <p>No chores configured yet.</p>
+      <div style="display: flex; gap: 8px; justify-content: center">
+        <button @click="navigateTo('add')">+ Add First Chore</button>
+        <button class="btn-secondary" @click="loadSampleChores()">
+          Load Example Chores
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Chores Exist -->
+  <template x-if="chores.length > 0">
+    <div>
+      <!-- Rest Day Info Banner -->
+      <template x-if="plan.metrics.isRestDay && plan.backlogTasks.length === 0">
+        <div class="banner banner-info">
+          <strong>Enjoy your rest day!</strong> No daily tasks scheduled for
+          today.
+        </div>
+      </template>
+
+      <!-- Today's Focus Tasks Section -->
+      <template x-if="plan.todayTasks.length > 0">
+        <div class="section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span>Today's Tasks</span>
+              <span
+                class="badge badge-count"
+                x-text="plan.todayTasks.length"
+              ></span>
+            </h2>
+          </div>
+
+          <template
+            x-for="item in plan.todayTasks"
+            :key="item.chore.id || item.chore.name"
+          >
+            <div
+              class="chore-card"
+              :class="{
+                'is-critical': item.urgencyRatio >= 2.0,
+                'is-overdue': item.isOverdue && item.urgencyRatio < 2.0
+              }"
+            >
+              <div class="chore-info">
+                <div class="chore-name" x-text="item.chore.name"></div>
+                <div class="chore-meta">
+                  <span
+                    class="badge badge-interval"
+                    x-text="formatInterval(item.chore.interval)"
+                  ></span>
+                  <template x-if="item.isOverdue">
+                    <span
+                      class="badge"
+                      :class="item.urgencyRatio >= 2.0 ? 'badge-critical' : 'badge-overdue'"
+                      x-text="`${item.urgencyRatio.toFixed(1)}x overdue`"
+                    ></span>
+                  </template>
+                  <template
+                    x-if="item.chore.interval.weekdays && item.chore.interval.weekdays.length > 0"
+                  >
+                    <span
+                      class="badge badge-weekday"
+                      x-text="`Prefers: ${item.chore.interval.weekdays.join(', ')}`"
+                    ></span>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <button
+                  class="btn-done"
+                  @click="markDone(item.chore.id || item.chore.name)"
+                >
+                  ✓ Done
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- All Done for Today Message -->
+      <template
+        x-if="!plan.metrics.isRestDay && plan.todayTasks.length === 0 && plan.backlogTasks.length === 0"
+      >
+        <div class="banner banner-success" style="text-align: center">
+          <strong>All caught up for today! 🎉</strong> Great job maintaining
+          your household.
+        </div>
+      </template>
+
+      <!-- Overdue Backlog Section (Tasks that missed quota or earlier days) -->
+      <template x-if="plan.backlogTasks.length > 0">
+        <div class="section">
+          <div class="section-header">
+            <h2 class="section-title" style="color: var(--color-warning)">
+              <span>⚠️ Overdue Backlog</span>
+              <span
+                class="badge badge-overdue"
+                x-text="plan.backlogTasks.length"
+              ></span>
+            </h2>
+          </div>
+
+          <template
+            x-for="item in plan.backlogTasks"
+            :key="item.chore.id || item.chore.name"
+          >
+            <div
+              class="chore-card"
+              :class="{
+                'is-critical': item.urgencyRatio >= 2.0,
+                'is-overdue': item.urgencyRatio < 2.0
+              }"
+            >
+              <div class="chore-info">
+                <div class="chore-name" x-text="item.chore.name"></div>
+                <div class="chore-meta">
+                  <span
+                    class="badge badge-interval"
+                    x-text="formatInterval(item.chore.interval)"
+                  ></span>
+                  <span
+                    class="badge"
+                    :class="item.urgencyRatio >= 2.0 ? 'badge-critical' : 'badge-overdue'"
+                    x-text="`${item.urgencyRatio.toFixed(1)}x overdue`"
+                  ></span>
+                </div>
+              </div>
+              <div>
+                <button
+                  class="btn-done"
+                  @click="markDone(item.chore.id || item.chore.name)"
+                >
+                  ✓ Done
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Collapsible Upcoming Tasks -->
+      <template x-if="plan.upcomingTasks.length > 0">
+        <div class="section" style="margin-top: 24px">
+          <button
+            class="accordion-toggle"
+            @click="showUpcoming = !showUpcoming"
+            type="button"
+          >
+            <span
+              x-text="`Upcoming Chores (${plan.upcomingTasks.length})`"
+            ></span>
+            <span x-text="showUpcoming ? '▲' : '▼'"></span>
+          </button>
+
+          <div class="accordion-content" x-show="showUpcoming">
+            <template
+              x-for="item in plan.upcomingTasks"
+              :key="item.chore.id || item.chore.name"
+            >
+              <div class="chore-card" style="opacity: 0.85">
+                <div class="chore-info">
+                  <div class="chore-name" x-text="item.chore.name"></div>
+                  <div class="chore-meta">
+                    <span
+                      class="badge badge-interval"
+                      x-text="formatInterval(item.chore.interval)"
+                    ></span>
+                    <span
+                      class="badge"
+                      x-text="formatLastDone(item.chore)"
+                    ></span>
+                  </div>
+                </div>
+                <div>
+                  <button
+                    class="btn-secondary btn-sm"
+                    @click="markDone(item.chore.id || item.chore.name)"
+                  >
+                    ✓ Early Done
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>
+
+          </div>
+        </template>
+
+        <!-- Form Screen (Add / Edit) -->
+        <template x-if="currentPage === 'add' || currentPage === 'edit'">
+          <div>
+            <div>
+  <div style="margin-bottom: 20px">
+    <h1
+      style="font-size: 1.3rem; margin: 0 0 4px"
+      x-text="editingId ? 'Edit Chore' : 'Add Chore'"
+    ></h1>
+    <p style="color: var(--color-text-muted); font-size: 0.875rem; margin: 0">
+      Set how often this chore needs to be done and any preferred days.
+    </p>
+  </div>
+
+  <form @submit.prevent="saveChore()">
+    <!-- Chore Name -->
+    <div class="form-group">
+      <label for="chore-name">Chore Name *</label>
+      <input
+        type="text"
+        id="chore-name"
+        x-model="form.name"
+        required
+        placeholder="e.g. Beddengoed wassen"
+      />
+    </div>
+
+    <!-- Interval Amount & Unit -->
+    <div class="form-group">
+      <label>Interval *</label>
+      <div class="form-row">
+        <div>
+          <input
+            type="number"
+            id="chore-amount"
+            min="1"
+            max="365"
+            x-model.number="form.amount"
+            required
+            placeholder="e.g. 2"
+          />
+        </div>
+        <div>
+          <select id="chore-type" x-model="form.type">
+            <option value="day">Day(s)</option>
+            <option value="week">Week(s)</option>
+            <option value="month">Month(s)</option>
+          </select>
+        </div>
+      </div>
+      <p
+        style="
+          font-size: 0.775rem;
+          color: var(--color-text-muted);
+          margin: 4px 0 0;
+        "
+      >
+        💡 Tip: For quarterly chores use 3 months; for yearly use 12 months.
+      </p>
+    </div>
+
+    <!-- Preferred Weekdays (Optional) -->
+    <div class="form-group">
+      <label>Preferred Weekday(s) (Optional)</label>
+      <p
+        style="
+          font-size: 0.775rem;
+          color: var(--color-text-muted);
+          margin: 0 0 6px;
+        "
+      >
+        Optionally tie this chore to specific days (e.g. Planten on Saturday).
+      </p>
+      <div class="weekday-selector">
+        <template x-for="day in allWeekdays" :key="day">
+          <button
+            type="button"
+            class="weekday-chip"
+            :class="{ 'active': isFormWeekdaySelected(day) }"
+            @click="toggleFormWeekday(day)"
+            x-text="day.charAt(0).toUpperCase() + day.slice(1, 3)"
+          ></button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Last Performed Date (Optional) -->
+    <div class="form-group">
+      <label for="chore-last-performed">Last Performed Date (Optional)</label>
+      <div style="display: flex; gap: 8px">
+        <input
+          type="date"
+          id="chore-last-performed"
+          x-model="form.lastPerformedDate"
+        />
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          @click="form.lastPerformedDate = ''"
+          x-show="form.lastPerformedDate"
+        >
+          Clear
+        </button>
+      </div>
+      <p
+        style="
+          font-size: 0.775rem;
+          color: var(--color-text-muted);
+          margin: 4px 0 0;
+        "
+      >
+        Leave empty to automatically stagger this chore across its cycle.
+      </p>
+    </div>
+
+    <!-- Form Actions -->
+    <div style="display: flex; gap: 10px; margin-top: 24px">
+      <button type="submit" style="flex: 1">
+        <span x-text="editingId ? 'Save Changes' : 'Add Chore'"></span>
+      </button>
+      <button type="button" class="btn-secondary" @click="goBack()">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>
+
+          </div>
+        </template>
+
+        <!-- Settings Screen -->
+        <template x-if="currentPage === 'settings'">
+          <div>
+            <div>
+  <div style="margin-bottom: 20px">
+    <h1 style="font-size: 1.3rem; margin: 0 0 4px">Settings</h1>
+    <p style="color: var(--color-text-muted); font-size: 0.875rem; margin: 0">
+      Configure chore schedules, active days, and backup data.
+    </p>
+  </div>
+
+  <!-- Section: Active Weekdays -->
+  <div class="section">
+    <h2 class="section-title" style="margin-bottom: 8px">
+      Active Schedule Days
+    </h2>
+    <p
+      style="
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        margin-bottom: 12px;
+      "
+    >
+      Chores are evenly balanced across your active days. Unselected days serve
+      as rest and catch-up buffer.
+    </p>
+
+    <div class="weekday-selector">
+      <template x-for="day in allWeekdays" :key="day">
+        <button
+          type="button"
+          class="weekday-chip"
+          :class="{ 'active': isActiveWeekday(day) }"
+          @click="toggleActiveWeekday(day)"
+          x-text="day.charAt(0).toUpperCase() + day.slice(1, 3)"
+        ></button>
+      </template>
+    </div>
+  </div>
+
+  <!-- Section: Manage Chores -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span>Manage Chores</span>
+        <span class="badge badge-count" x-text="chores.length"></span>
+      </h2>
+      <button class="btn-sm" @click="navigateTo('add')">+ Add Chore</button>
+    </div>
+
+    <template x-if="chores.length === 0">
+      <div class="empty-state">
+        <p>No chores in database.</p>
+        <button class="btn-secondary btn-sm" @click="loadSampleChores()">
+          Load Example Chores
+        </button>
+      </div>
+    </template>
+
+    <template x-if="chores.length > 0">
+      <div>
+        <template x-for="chore in chores" :key="chore.id || chore.name">
+          <div class="chore-card">
+            <div class="chore-info">
+              <div class="chore-name" x-text="chore.name"></div>
+              <div class="chore-meta">
+                <span
+                  class="badge badge-interval"
+                  x-text="formatInterval(chore.interval)"
+                ></span>
+                <span class="badge" x-text="formatLastDone(chore)"></span>
+                <template
+                  x-if="chore.interval.weekdays && chore.interval.weekdays.length > 0"
+                >
+                  <span
+                    class="badge badge-weekday"
+                    x-text="chore.interval.weekdays.join(', ')"
+                  ></span>
+                </template>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px">
+              <button
+                type="button"
+                class="btn-secondary btn-sm"
+                @click="navigateTo('edit', chore.id || chore.name)"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                class="btn-danger btn-sm"
+                @click="deleteChore(chore.id || chore.name)"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+  <!-- Section: Backup & Restore -->
+  <div
+    class="section"
+    style="border-top: 1px solid var(--color-border); padding-top: 20px"
+  >
+    <h2 class="section-title" style="margin-bottom: 8px">Backup & Restore</h2>
+
+    <div class="form-group">
+      <label for="settings-export">Export JSON</label>
+      <p
+        style="
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+          margin: 0 0 6px;
+        "
+      >
+        Copy this JSON string to keep a backup of your chores and settings.
+      </p>
+      <textarea
+        id="settings-export"
+        readonly
+        rows="3"
+        x-effect="$el.value = exportJSON()"
+      ></textarea>
+      <button
+        type="button"
+        class="btn-secondary btn-sm"
+        style="margin-top: 6px"
+        @click="copyExport()"
+      >
+        📋 Copy JSON
+      </button>
+    </div>
+
+    <div class="form-group" style="margin-top: 16px">
+      <label for="settings-import">Restore JSON</label>
+      <p
+        style="
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+          margin: 0 0 6px;
+        "
+      >
+        Paste a previously exported JSON backup to restore your data.
+      </p>
+      <textarea
+        id="settings-import"
+        x-model="restoreText"
+        rows="3"
+        placeholder='Paste backup JSON here {"version": 1, ...}'
+      ></textarea>
+      <div style="display: flex; gap: 8px; margin-top: 6px">
+        <button
+          type="button"
+          class="btn-sm"
+          @click="restoreFromJSON(restoreText)"
+        >
+          Restore
+        </button>
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          @click="loadSampleChores()"
+        >
+          Reset to Example Chores
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+          </div>
+        </template>
+      </main>
+
+      <!-- Toast Container -->
+      <div class="toast-container">
+  <template x-for="toast in toasts" :key="toast.id">
+    <div
+      class="toast"
+      x-text="toast.message"
+      @click="removeToast(toast.id)"
+    ></div>
+  </template>
+</div>
+
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
